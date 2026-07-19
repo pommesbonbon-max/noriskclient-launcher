@@ -71,20 +71,14 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Wird evtl. intern von Tauri benötigt
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
           RUSTFLAGS: ${{ matrix.platform == 'ubuntu-22.04' && '-C link-arg=-Wl,--no-as-needed -C link-arg=-layatana-appindicator3 -C link-arg=-Wl,--as-needed' || '' }}
         with:
           # Revert to using packageManager and args
           args: --verbose ${{ matrix.target != '' && format('--target {0}', matrix.target) || '' }} # Füge --target hinzu, wenn es gesetzt ist
           packageManager: yarn # Set packageManager to yarn
       
-      - name: Fix AppImage (Remove Wayland libs & Resign)
+      - name: Fix AppImage (Remove Wayland libs)
         if: matrix.platform == 'ubuntu-22.04'
-        env:
-          # Pass the secrets directly to the environment
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         run: |
           echo "--- Fix AppImage Started ---"
           
@@ -105,16 +99,12 @@ jobs:
           export ARCH=x86_64
           ./appimagetool-x86_64.AppImage squashfs-root/ "$APPIMAGE"
           
-          echo "Re-signing..."
-          
           cd - > /dev/null
-          
-          yarn tauri signer sign "$BUNDLE_DIR/$APPIMAGE"
           
           cd "$BUNDLE_DIR"
           rm -rf squashfs-root appimagetool-x86_64.AppImage
           
-          echo "--- Fix Complete ---"
+          echo "--- Fix Complete (unsigned, updater signature skipped) ---"
 
       # --- EV Code Signing (Windows) ---
       - name: Find Windows EXE for Signing
