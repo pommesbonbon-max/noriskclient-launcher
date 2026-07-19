@@ -15,18 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest'
-            target: aarch64-apple-darwin
-            output_path: ./src-tauri/target/aarch64-apple-darwin/release/bundle
-            asset_name_base: NoRiskClient-MacOS-arm64
-          - platform: 'macos-latest'
-            target: x86_64-apple-darwin
-            output_path: ./src-tauri/target/x86_64-apple-darwin/release/bundle
-            asset_name_base: NoRiskClient-MacOS-x86_64
-          - platform: 'ubuntu-22.04'
-            target: '' # Kein explizites Target für Linux x86_64
-            output_path: ./src-tauri/target/release/bundle
-            asset_name_base: NoRiskClient-Linux
           - platform: 'windows-latest'
             target: '' # Kein explizites Target für Windows x86_64
             output_path: ./src-tauri/target/release/bundle
@@ -192,14 +180,18 @@ jobs:
           $ARTIFACT_DIR = "${{ matrix.output_path }}\nsis"
           echo "Listing content of $ARTIFACT_DIR"
           Get-ChildItem -Path $ARTIFACT_DIR -Recurse
-          # Finde die Originalnamen (angenommen nur eine .exe und eine .exe.sig)
+          # Finde die Originalnamen (angenommen nur eine .exe und optional eine .exe.sig)
           $ExeFile = Get-ChildItem -Path $ARTIFACT_DIR -Filter *.exe
-          $SigFile = Get-ChildItem -Path $ARTIFACT_DIR -Filter *.exe.sig
+          $SigFile = Get-ChildItem -Path $ARTIFACT_DIR -Filter *.exe.sig -ErrorAction SilentlyContinue
 
           # Benenne .exe um
           Move-Item -Path $ExeFile.FullName -Destination "$ARTIFACT_DIR\${{ matrix.asset_name_base }}.exe"
-          # Benenne .exe.sig um
-          Move-Item -Path $SigFile.FullName -Destination "$ARTIFACT_DIR\${{ matrix.asset_name_base }}.exe.sig"
+          # Benenne .exe.sig um (nur wenn vorhanden - Updater-Signatur ist deaktiviert)
+          if ($SigFile) {
+            Move-Item -Path $SigFile.FullName -Destination "$ARTIFACT_DIR\${{ matrix.asset_name_base }}.exe.sig"
+          } else {
+            echo "No .sig file found (updater signing disabled) - skipping"
+          }
 
           echo "Final content of $ARTIFACT_DIR after move"
           Get-ChildItem -Path $ARTIFACT_DIR -Recurse
