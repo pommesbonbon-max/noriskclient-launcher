@@ -238,6 +238,26 @@ jobs:
           echo "-----------------------------------"
         shell: bash
 
+      # --- Portable Windows Build ---
+      - name: Build Portable Windows Package
+        if: matrix.platform == 'windows-latest'
+        run: |
+          $PortableDir = "portable-build"
+          New-Item -ItemType Directory -Path $PortableDir -Force
+          Copy-Item -Path "src-tauri\target\release\noriskclient-launcher-v3.exe" -Destination "$PortableDir\NoRiskClient-Portable.exe"
+          New-Item -ItemType File -Path "$PortableDir\portable.txt" -Force
+          Compress-Archive -Path "$PortableDir\*" -DestinationPath "NoRiskClient-Windows-Portable.zip" -Force
+          echo "Portable package contents:"
+          Get-ChildItem -Path $PortableDir
+
+      - name: Upload Windows Portable Artifact
+        uses: actions/upload-artifact@v4
+        if: matrix.platform == 'windows-latest'
+        with:
+          name: artifact-windows-portable
+          path: NoRiskClient-Windows-Portable.zip
+          if-no-files-found: error
+
       # --- Artefakte hochladen --- 
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
